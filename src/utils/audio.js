@@ -5,9 +5,9 @@ class VoiceSynthesizer {
     this.recorder = null;
     this.chunks = [];
     this.voice = null;
-    this.pitch = 1; // Default pitch
-    this.volume = 1; // Default volume
-    this.rate = 1; // Default rate (speed)
+    this.pitch = 1;
+    this.volume = 1;
+    this.rate = 1;
   }
 
   setVoice(voiceName = 'Google Hindi') {
@@ -27,23 +27,30 @@ class VoiceSynthesizer {
     this.rate = rate;
   }
 
-  speakText(text) {
+  async speakText(text) {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.voice = this.voice;
     utterance.pitch = this.pitch;
     utterance.volume = this.volume;
     utterance.rate = this.rate;
 
-    // Connect utterance to a MediaStreamDestination
+    // Ensure AudioContext is running
+    await this.audioContext.resume();
+
+    // Connect AudioContext
     const mediaStreamDestination = this.audioContext.createMediaStreamDestination();
+    console.log('MediaStream tracks:', mediaStreamDestination.stream.getTracks());
 
     // Start recording
     this.startRecording(mediaStreamDestination.stream);
 
     utterance.onend = () => {
+      console.log('Speech synthesis ended.');
       this.stopRecording();
     };
 
+    // Speak
+    console.log('Speaking text:', text);
     this.synth.speak(utterance);
   }
 
@@ -60,11 +67,17 @@ class VoiceSynthesizer {
       if (event.data.size > 0) {
         this.chunks.push(event.data);
       }
+      console.log('Data available:', event.data);
+    };
+
+    this.recorder.onerror = (event) => {
+      console.error('MediaRecorder error:', event.error);
+      alert('An error occurred during recording.');
     };
 
     this.recorder.onstop = async () => {
       const blob = new Blob(this.chunks, { type: 'audio/webm' });
-      console.log('Blob size:', blob.size);
+      console.log('Recorded Blob:', blob);
 
       if (blob.size > 0) {
         const formData = new FormData();
