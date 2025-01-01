@@ -42,10 +42,14 @@ class VoiceSynthesizer {
     utterance.volume = this.volume;
     utterance.rate = this.rate;
 
-    // Connect the audio to MediaStreamDestination for recording
+    // Create a MediaStream to record audio
     const audioDestination = this.audioContext.createMediaStreamDestination();
     const audioSource = this.audioContext.createMediaStreamSource(audioDestination.stream);
-    audioSource.connect(this.audioContext.destination);
+
+    // Connect speech synthesis to the audio context
+    const gainNode = this.audioContext.createGain();
+    audioSource.connect(gainNode);
+    gainNode.connect(this.audioContext.destination);
 
     // Start recording
     this.startRecording(audioDestination.stream);
@@ -55,6 +59,7 @@ class VoiceSynthesizer {
       this.stopRecording();
     };
 
+    // Speak the text
     this.synth.speak(utterance);
   }
 
@@ -83,6 +88,11 @@ class VoiceSynthesizer {
             body: formData,
           });
 
+          // Check if the upload was successful
+          if (!response.ok) {
+            throw new Error('Error uploading audio');
+          }
+
           const data = await response.json();
           if (data.success) {
             alert(`Audio saved! Download your file from: ${data.downloadUrl}`);
@@ -91,6 +101,7 @@ class VoiceSynthesizer {
           }
         } catch (error) {
           console.error('Error uploading audio:', error);
+          alert('An error occurred while uploading the audio. Please try again.');
         }
       };
 
