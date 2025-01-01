@@ -1,4 +1,4 @@
-import { saveAs } from 'file-saver';  // Import FileSaver.js
+import { saveAs } from 'file-saver'; // Import FileSaver.js
 
 class VoiceSynthesizer {
   constructor() {
@@ -42,17 +42,15 @@ class VoiceSynthesizer {
     utterance.volume = this.volume;
     utterance.rate = this.rate;
 
-    // Create a MediaStream to record audio
-    const audioDestination = this.audioContext.createMediaStreamDestination();
-    const audioSource = this.audioContext.createMediaStreamSource(audioDestination.stream);
+    // Connect speech synthesis to audio context
+    const audioSource = this.audioContext.createMediaStreamDestination();
+    const sourceNode = this.audioContext.createMediaStreamSource(audioSource.stream);
 
-    // Connect speech synthesis to the audio context
-    const gainNode = this.audioContext.createGain();
-    audioSource.connect(gainNode);
-    gainNode.connect(this.audioContext.destination);
+    // Route the audio stream for recording
+    sourceNode.connect(this.mediaStreamDestination);
 
     // Start recording
-    this.startRecording(audioDestination.stream);
+    this.startRecording(this.mediaStreamDestination.stream);
 
     // Stop recording when speech ends
     utterance.onend = () => {
@@ -87,11 +85,6 @@ class VoiceSynthesizer {
             method: 'POST',
             body: formData,
           });
-
-          // Check if the upload was successful
-          if (!response.ok) {
-            throw new Error('Error uploading audio');
-          }
 
           const data = await response.json();
           if (data.success) {
