@@ -34,29 +34,21 @@ class VoiceSynthesizer {
     utterance.volume = this.volume;
     utterance.rate = this.rate;
 
-    // Ensure AudioContext is running
+    // Resume AudioContext
     await this.audioContext.resume();
 
-    // Connect AudioContext
+    // Connect audio context for recording
     const mediaStreamDestination = this.audioContext.createMediaStreamDestination();
-    console.log('MediaStream tracks:', mediaStreamDestination.stream.getTracks());
-
-    // Start recording
     this.startRecording(mediaStreamDestination.stream);
 
-    utterance.onend = () => {
-      console.log('Speech synthesis ended.');
-      this.stopRecording();
-    };
+    utterance.onend = () => this.stopRecording();
 
-    // Speak
-    console.log('Speaking text:', text);
     this.synth.speak(utterance);
   }
 
   startRecording(stream) {
-    if (!window.MediaRecorder || !MediaRecorder.isTypeSupported('audio/webm')) {
-      alert('Your browser does not support audio recording.');
+    if (!MediaRecorder.isTypeSupported('audio/webm')) {
+      alert('Your browser does not support WebM audio format.');
       return;
     }
 
@@ -64,21 +56,11 @@ class VoiceSynthesizer {
     this.chunks = [];
 
     this.recorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        this.chunks.push(event.data);
-      }
-      console.log('Data available:', event.data);
-    };
-
-    this.recorder.onerror = (event) => {
-      console.error('MediaRecorder error:', event.error);
-      alert('An error occurred during recording.');
+      if (event.data.size > 0) this.chunks.push(event.data);
     };
 
     this.recorder.onstop = async () => {
       const blob = new Blob(this.chunks, { type: 'audio/webm' });
-      console.log('Recorded Blob:', blob);
-
       if (blob.size > 0) {
         const formData = new FormData();
         formData.append('audio', blob, 'synthesized_voice.webm');
@@ -91,13 +73,13 @@ class VoiceSynthesizer {
 
           const data = await response.json();
           if (data.success) {
-            alert(`Audio saved! Download your file from: ${data.downloadUrl}`);
+            alert(`Audio saved! Download it here: ${data.downloadUrl}`);
           } else {
-            alert('Error uploading audio');
+            alert('Error uploading audio.');
           }
         } catch (error) {
-          console.error('Error uploading audio:', error);
-          alert('Error uploading audio');
+          console.error('Upload error:', error);
+          alert('Error uploading audio.');
         }
       } else {
         alert('Recording failed. Please try again.');
